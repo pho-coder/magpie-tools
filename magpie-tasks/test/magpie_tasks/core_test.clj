@@ -1,6 +1,6 @@
-(ns magpie-jars.core-test
+(ns magpie-tasks.core-test
   (:require [clojure.test :refer :all]
-            [magpie-jars.core :refer :all]))
+            [magpie-tasks.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

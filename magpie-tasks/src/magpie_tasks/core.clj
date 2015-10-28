@@ -27,8 +27,52 @@
                             {}
                             (get-all-supervisors))]
     (map (fn [task]
-           (assoc-in task [:start-time] (utils/timestamp2datetime (:start-time task))))
+           (let [replace-start-time (if (nil? (task :start-time))
+                                      task
+                                      (assoc-in task [:start-time] (utils/timestamp2datetime (:start-time task))))
+                 replace-supervisor (if (nil? (replace-start-time :supervisor))
+                                      replace-start-time
+                                      (assoc-in replace-start-time [:supervisor] ((supervisors (replace-start-time :supervisor)) :ip)))
+                 replace-last-supervisor (if (nil? (replace-supervisor :last-supervisor))
+                                           replace-supervisor
+                                           (assoc-in replace-supervisor [:last-supervisor] ((supervisors (replace-supervisor :last-supervisor)) :ip)))]
+             replace-last-supervisor))
          (get-all-tasks))))
+
+(defn prn-tasks-info
+  []
+  (let [tasks (get-tasks-info)]
+    (println)
+    (println)
+    (println "longest alive task:")
+    (let [longest-alive-task (reduce (fn [u one]
+                                       (if (< (compare (one :start-time) (u :start-time)) 0)
+                                         one
+                                         u))
+                                     tasks)]
+      (println longest-alive-task))
+    (println)
+    (println)
+    (println "newest alive task:")
+    (let [newest-alive-task (reduce (fn [u one]
+                                      (if (> (compare (one :start-time) (u :start-time)) 0)
+                                        one
+                                        u))
+                                    tasks)]
+      (println newest-alive-task))
+    (println)
+    (println)
+    (println "group_jar_class counts:")
+    (loop [tasks tasks result (hash-map)
+           (if (empty? tasks)
+             result
+             (let []))])
+    (println)
+    (println)
+    (println "tasks info:")
+    (doseq [task tasks]
+      (let [sorted-task (into (sorted-map) task)]
+        (println sorted-task)))))
 
 (defn get-assignments-info
   []
@@ -60,10 +104,6 @@
   (let [zk-str (nth args 0)]
     (prn zk-str)
     (zk/new-client zk-str)
-    (prn (get-all-tasks))
-    (prn (get-tasks-info))
-    (prn (get-all-supervisors))
-    (get-tasks-info)
+    (prn-tasks-info)
     (get-assignments-info)
-    (zk/close)
-    ))
+    (zk/close)))

@@ -24,7 +24,7 @@
 
 (defn supervisors-health
   []
-  (let []))
+)
 
 (defn get-tasks-info
   []

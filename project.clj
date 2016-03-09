@@ -11,4 +11,4 @@
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
   :plugins [[lein-kibit "0.1.2"]
-            [cider/cider-nrepl "0.10.2"]])
+            [cider/cider-nrepl "0.11.0"]])

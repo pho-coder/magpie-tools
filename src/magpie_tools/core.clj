@@ -1,8 +1,10 @@
-(ns magpie-tasks.core
+(ns magpie-tools.core
   (:gen-class)
   (:require [clj-zookeeper.zookeeper :as zk]
             [clojure.data.json :as json]
             [com.jd.bdp.magpie.utils :as utils]))
+
+(def SUPERVISORS-PATH "/magpie/supervisors")
 
 (defn get-all-tasks
   []
@@ -14,11 +16,15 @@
 
 (defn get-all-supervisors
   []
-  (let [supervisors-path "/magpie/supervisors"
+  (let [supervisors-path SUPER
         supervisors-names (zk/get-children supervisors-path)]
     (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
                          :key-fn keyword)
          supervisors-names)))
+
+(defn supervisors-health
+  []
+  (let []))
 
 (defn get-tasks-info
   []
@@ -63,12 +69,6 @@
     (println)
     (println)
     (println "group_jar_class counts:")
-    (loop [tasks tasks result (hash-map)
-           (if (empty? tasks)
-             result
-             (let []))])
-    (println)
-    (println)
     (println "tasks info:")
     (doseq [task tasks]
       (let [sorted-task (into (sorted-map) task)]
@@ -100,7 +100,7 @@
 
 (defn -main
   [& args]
-  (println "Hi, magpie tasks!")
+  (println "Hi, magpie tools!")
   (let [zk-str (nth args 0)]
     (prn zk-str)
     (zk/new-client zk-str)

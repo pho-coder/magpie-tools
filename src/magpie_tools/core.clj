@@ -16,7 +16,7 @@
 
 (defn get-all-supervisors
   []
-  (let [supervisors-path SUPER
+  (let [supervisors-path SUPERVISORS-PATH
         supervisors-names (zk/get-children supervisors-path)]
     (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
                          :key-fn keyword)

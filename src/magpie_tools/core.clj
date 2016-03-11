@@ -136,7 +136,6 @@
   (prn "supervisors health:")
   (let [supervisors-health-info (supervisors-health)
         format-one (fn [one]
-                     (prn "format one")
                      (let [group (first (keys one))
                            values (first (vals one))
                            worst-net-bandwidth-score (:worst-net-bandwidth-score values)
@@ -167,7 +166,8 @@
                        (prn worst-cpu-new)
                        (prn "worst memory score: " worst-memory-score)
                        (prn worst-memory-new)))]
-                       (map #(format-one %1) supervisors-health-info)))
+    (doseq [one-group supervisors-health-info]
+      (format-one one-group))))
 
 (defn -main
   [& args]

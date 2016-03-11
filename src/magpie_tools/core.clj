@@ -24,7 +24,40 @@
 
 (defn supervisors-health
   []
-)
+  (let [all-supervisors (get-all-supervisors)
+        all-supervisors-groupped (reduce (fn [m one]
+                                           (update-in m [(:group one)] conj one)) 
+                                         {}
+                                         all-supervisors)
+        worst-supervisors (fn [one-group]
+                            (reduce (fn [m one]
+                                      (let [one-net-bandwidth-score (:net-bandwidth-score one)
+                                            one-cpu-score (:cpu-score one)
+                                            one-memory-score (:memory-score one)
+                                            worst-net-bandwidth-score (:worst-net-bandwidth-score m)
+                                            worst-cpu-score (:worst-cpu-score m)
+                                            worst-memory-score (:worst-memory-score m)
+                                            tmp (atom m)]
+                                        (when (<= one-net-bandwidth-score worst-net-bandwidth-score)
+                                          (reset! tmp (assoc-in @tmp [:worst-net-bandwidth-score] one-net-bandwidth-score))
+                                          (reset! tmp (assoc-in @tmp [:worst-net-bandwidth-one] one)))
+                                        (when (<= one-cpu-score worst-cpu-score)
+                                          (reset! tmp (assoc-in @tmp [:worst-cpu-score] one-cpu-score))
+                                          (reset! tmp (assoc-in @tmp [:worst-cpu-one] one)))
+                                        (when (<= one-memory-score worst-memory-score)
+                                          (reset! tmp (assoc-in @tmp [:worst-memory-score] one-memory-score))
+                                          (reset! tmp (assoc-in @tmp [:worst-memory-one] one)))
+                                        @tmp))
+                                    {:worst-net-bandwidth-score 100
+                                     :worst-net-bandwidth-one nil
+                                     :worst-cpu-score 100
+                                     :worst-cpu-one nil
+                                     :worst-memory-score 100
+                                     :worst-memory-one nil}
+                                    one-group))]
+    (map #(let [group (first %)
+                one-group (second %)]
+            {group (worst-supervisors one-group)}) all-supervisors-groupped)))
 
 (defn get-tasks-info
   []
@@ -101,9 +134,9 @@
 (defn -main
   [& args]
   (println "Hi, magpie tools!")
-  (let [zk-str (nth args 0)]
+  (let [zk-str "172.22.178.87:2181,172.22.178.88:2181"]
     (prn zk-str)
     (zk/new-client zk-str)
-    (prn-tasks-info)
-    (get-assignments-info)
+;;    (prn (get-all-supervisors))
+    (prn (supervisors-health))
     (zk/close)))

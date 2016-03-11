@@ -1,4 +1,4 @@
-(ns magpie-tasks.core-test
+(ns magpie-tools.core-test
   (:require [clojure.test :refer :all]
             [magpie-tasks.core :refer :all]))
 

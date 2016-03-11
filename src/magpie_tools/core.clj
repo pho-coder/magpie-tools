@@ -131,12 +131,51 @@
     (doseq [ass assignments-info]
       (prn (str (key ass) "        " (val ass))))))
 
+(defn prn-supervisors-health
+  []
+  (prn "supervisors health:")
+  (let [supervisors-health-info (supervisors-health)
+        format-one (fn [one]
+                     (prn "format one")
+                     (let [group (first (keys one))
+                           values (first (vals one))
+                           worst-net-bandwidth-score (:worst-net-bandwidth-score values)
+                           worst-cpu-score (:worst-cpu-score values)
+                           worst-memory-score (:worst-memory-score values)
+                           wnb-one (:worst-net-bandwidth-one values)
+                           wc-one (:worst-cpu-one values)
+                           wm-one (:worst-memory-one values)
+                           worst-net-bandwidth-new {:ip (:ip wnb-one)
+                                                    :hostname (:hostname wnb-one)
+                                                    :max-net-bandwidth (:max-net-bandwidth wnb-one)
+                                                    :tx-net-bandwidth (:tx-net-bandwidth wnb-one)
+                                                    :rx-net-bandwidth (:rx-net-bandwidth wnb-one)
+                                                    :net-bandwidth-score (:net-bandwidth-score wnb-one)}
+                           worst-cpu-new {:ip (:ip wc-one)
+                                          :hostname (:hostname wc-one)
+                                          :cpu-core (:cpu-core wc-one)
+                                          :load-avg (:load-avg wc-one)
+                                          :cpu-score (:cpu-score wc-one)}
+                           worst-memory-new {:ip (:ip wm-one)
+                                             :hostname (:hostname wm-one)
+                                             :total-memory (:total-memory wm-one)
+                                             :memory-score (:memory-score wm-one)}]
+                       (prn "group: " group)
+                       (prn "worst net-bandwidth score: " worst-net-bandwidth-score)
+                       (prn worst-net-bandwidth-new)
+                       (prn "worst cpu score: " worst-cpu-score)
+                       (prn worst-cpu-new)
+                       (prn "worst memory score: " worst-memory-score)
+                       (prn worst-memory-new)))]
+                       (map #(format-one %1) supervisors-health-info)))
+
 (defn -main
   [& args]
-  (println "Hi, magpie tools!")
+  (prn "Hi, magpie tools!")
   (let [zk-str "172.22.178.87:2181,172.22.178.88:2181"]
     (prn zk-str)
     (zk/new-client zk-str)
 ;;    (prn (get-all-supervisors))
-    (prn (supervisors-health))
+    ;;(prn (supervisors-health))
+    (prn-supervisors-health)
     (zk/close)))

@@ -5,6 +5,8 @@
             [com.jd.bdp.magpie.utils :as utils]))
 
 (def SUPERVISORS-PATH "/magpie/supervisors")
+(def YOURTASKS-PATH "/magpie/yourtasks")
+(def WARNNING-SCORE 50)
 
 (defn get-all-tasks
   []
@@ -13,6 +15,14 @@
     (map #(json/read-str (String. (zk/get-data (str assignments-path "/" %)))
                          :key-fn keyword)
          children-names)))
+
+(defn get-tasks-in-supervisor
+  [supervisor]
+  (let [tasks-path (str YOURTASKS-PATH "/" supervisor)
+        tasks (zk/get-children tasks-path)]
+    (map #(assoc (json/read-str (String. (zk/get-data (str tasks-path "/" %)))
+                         :key-fn keyword) :task-id %)
+         tasks)))
 
 (defn get-all-supervisors
   []
@@ -133,7 +143,7 @@
 
 (defn prn-supervisors-health
   []
-  (prn "supervisors health:")
+  (println "supervisors health:")
   (let [supervisors-health-info (supervisors-health)
         format-one (fn [one]
                      (let [group (first (keys one))
@@ -144,38 +154,49 @@
                            wnb-one (:worst-net-bandwidth-one values)
                            wc-one (:worst-cpu-one values)
                            wm-one (:worst-memory-one values)
-                           worst-net-bandwidth-new {:ip (:ip wnb-one)
+                           worst-net-bandwidth-new {:id (:id wnb-one)
+                                                    :ip (:ip wnb-one)
                                                     :hostname (:hostname wnb-one)
                                                     :max-net-bandwidth (:max-net-bandwidth wnb-one)
                                                     :tx-net-bandwidth (:tx-net-bandwidth wnb-one)
                                                     :rx-net-bandwidth (:rx-net-bandwidth wnb-one)
                                                     :net-bandwidth-score (:net-bandwidth-score wnb-one)}
-                           worst-cpu-new {:ip (:ip wc-one)
+                           worst-cpu-new {:id (:id wc-one)
+                                          :ip (:ip wc-one)
                                           :hostname (:hostname wc-one)
                                           :cpu-core (:cpu-core wc-one)
                                           :load-avg (:load-avg wc-one)
                                           :cpu-score (:cpu-score wc-one)}
-                           worst-memory-new {:ip (:ip wm-one)
+                           worst-memory-new {:id (:id wm-one)
+                                             :ip (:ip wm-one)
                                              :hostname (:hostname wm-one)
                                              :total-memory (:total-memory wm-one)
                                              :memory-score (:memory-score wm-one)}]
-                       (prn "group: " group)
-                       (prn "worst net-bandwidth score: " worst-net-bandwidth-score)
-                       (prn worst-net-bandwidth-new)
-                       (prn "worst cpu score: " worst-cpu-score)
-                       (prn worst-cpu-new)
-                       (prn "worst memory score: " worst-memory-score)
-                       (prn worst-memory-new)))]
+                       (print "\n")
+                       (println "group:" group)
+                       (println "worst net-bandwidth score:" (if (>= worst-net-bandwidth-score WARNNING-SCORE)
+                                                                worst-net-bandwidth-score
+                                                                (str worst-net-bandwidth-score " WARNNING")))
+                       (println worst-net-bandwidth-new)
+                       (println "worst cpu score:" (if (>= worst-cpu-score WARNNING-SCORE)
+                                                     worst-cpu-score
+                                                     (str worst-cpu-score " WARNNING")))
+                       (println worst-cpu-new)
+                       (println "worst memory score:" (if (>= worst-memory-score WARNNING-SCORE)
+                                                        worst-memory-score
+                                                        (str worst-memory-score " WARNNING")))
+                       (println worst-memory-new)))]
     (doseq [one-group supervisors-health-info]
       (format-one one-group))))
 
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [zk-str "172.22.178.87:2181,172.22.178.88:2181"]
+  (let [zk-str "172.17.36.56:2181"]
     (prn zk-str)
     (zk/new-client zk-str)
 ;;    (prn (get-all-supervisors))
     ;;(prn (supervisors-health))
     (prn-supervisors-health)
+    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
     (zk/close)))

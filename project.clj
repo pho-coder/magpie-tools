@@ -3,10 +3,13 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :repositories [["jd-libs-snapshots" "http://artifactory.360buy-develop.com/libs-snapshots"]
+                 ["clojars" "http://clojars.org/repo"]]
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-zookeeper "0.2.0-SNAPSHOT"]
                  [org.clojure/data.json "0.2.6"]
-                 [com.jd.bdp.magpie/magpie-utils "0.1.0.2015092214-SNAPSHOT"]]
+                 [com.jd.bdp.magpie/magpie-utils "0.1.0.2015092214-SNAPSHOT"]
+                 [com.jd.magpie/magpie-client "1.1.2-SNAPSHOT"]]
   :main ^:skip-aot magpie-tools.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}

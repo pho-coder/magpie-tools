@@ -24,6 +24,10 @@
                          :key-fn keyword) :task-id %)
          tasks)))
 
+(defn kill-a-task
+  [task-id]
+  ())
+
 (defn get-all-supervisors
   []
   (let [supervisors-path SUPERVISORS-PATH

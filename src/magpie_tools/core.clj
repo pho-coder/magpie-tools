@@ -2,7 +2,9 @@
   (:gen-class)
   (:require [clj-zookeeper.zookeeper :as zk]
             [clojure.data.json :as json]
-            [com.jd.bdp.magpie.utils :as utils]))
+            [com.jd.bdp.magpie.utils :as mutils]
+            [magpie-tools.utils :as utils])
+  (:import [com.jd.magpie.client MagpieClient]))
 
 (def SUPERVISORS-PATH "/magpie/supervisors")
 (def YOURTASKS-PATH "/magpie/yourtasks")
@@ -82,7 +84,7 @@
     (map (fn [task]
            (let [replace-start-time (if (nil? (task :start-time))
                                       task
-                                      (assoc-in task [:start-time] (utils/timestamp2datetime (:start-time task))))
+                                      (assoc-in task [:start-time] (mutils/timestamp2datetime (:start-time task))))
                  replace-supervisor (if (nil? (replace-start-time :supervisor))
                                       replace-start-time
                                       (assoc-in replace-start-time [:supervisor] ((supervisors (replace-start-time :supervisor)) :ip)))
@@ -196,11 +198,12 @@
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [zk-str "172.17.36.56:2181"]
+  (let [zk-str "172.17.36.56:2181"
+;        magpie-client (MagpieClient. (java.util.HashMap.) "")
+        magpie-nimbus-path "/magpie/nimbus"]
     (prn zk-str)
     (zk/new-client zk-str)
-;;    (prn (get-all-supervisors))
-    ;;(prn (supervisors-health))
-    (prn-supervisors-health)
-    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
+;    (prn-supervisors-health)
+;    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
+    (utils/new-magpie-client magpie-nimbus-path)
     (zk/close)))

@@ -9,7 +9,9 @@
                  [clj-zookeeper "0.2.0-SNAPSHOT"]
                  [org.clojure/data.json "0.2.6"]
                  [com.jd.bdp.magpie/magpie-utils "0.1.0.2015092214-SNAPSHOT"]
-                 [com.jd.magpie/magpie-client "1.1.2-SNAPSHOT"]]
+                 [com.jd.magpie/magpie-client "1.1.2-SNAPSHOT"]
+                 [org.slf4j/slf4j-log4j12 "1.7.13"]
+                 [org.clojure/tools.logging "0.3.1"]]
   :main ^:skip-aot magpie-tools.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}

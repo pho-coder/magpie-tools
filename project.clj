@@ -13,6 +13,8 @@
                  [org.slf4j/slf4j-log4j12 "1.7.13"]
                  [org.clojure/tools.logging "0.3.1"]]
   :main ^:skip-aot magpie-tools.core
+  :source-paths ["src" "src/clj"]
+  :java-source-paths ["src/jvm"]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
   :plugins [[lein-kibit "0.1.2"]

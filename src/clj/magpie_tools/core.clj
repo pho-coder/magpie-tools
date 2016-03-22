@@ -1,155 +1,62 @@
 (ns magpie-tools.core
   (:gen-class)
   (:require [clj-zookeeper.zookeeper :as zk]
+            [clojure.tools.logging :as log]
             [clojure.data.json :as json]
-            [com.jd.bdp.magpie.utils :as mutils]
-            [magpie-tools.utils :as utils])
-  (:import [com.jd.magpie.client MagpieClient]))
+            [magpie-tools.utils :as utils]))
 
-(def SUPERVISORS-PATH "/magpie/supervisors")
-(def YOURTASKS-PATH "/magpie/yourtasks")
 (def WARNNING-SCORE 50)
-
-(defn get-all-tasks
-  []
-  (let [assignments-path "/magpie/assignments"
-        children-names (zk/get-children assignments-path)]
-    (map #(json/read-str (String. (zk/get-data (str assignments-path "/" %)))
-                         :key-fn keyword)
-         children-names)))
-
-(defn get-tasks-in-supervisor
-  [supervisor]
-  (let [tasks-path (str YOURTASKS-PATH "/" supervisor)
-        tasks (zk/get-children tasks-path)]
-    (map #(assoc (json/read-str (String. (zk/get-data (str tasks-path "/" %)))
-                         :key-fn keyword) :task-id %)
-         tasks)))
-
-(defn kill-a-task
-  [task-id]
-  ())
-
-(defn get-all-supervisors
-  []
-  (let [supervisors-path SUPERVISORS-PATH
-        supervisors-names (zk/get-children supervisors-path)]
-    (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
-                         :key-fn keyword)
-         supervisors-names)))
-
-(defn supervisors-health
-  []
-  (let [all-supervisors (get-all-supervisors)
-        all-supervisors-groupped (reduce (fn [m one]
-                                           (update-in m [(:group one)] conj one)) 
-                                         {}
-                                         all-supervisors)
-        worst-supervisors (fn [one-group]
-                            (reduce (fn [m one]
-                                      (let [one-net-bandwidth-score (:net-bandwidth-score one)
-                                            one-cpu-score (:cpu-score one)
-                                            one-memory-score (:memory-score one)
-                                            worst-net-bandwidth-score (:worst-net-bandwidth-score m)
-                                            worst-cpu-score (:worst-cpu-score m)
-                                            worst-memory-score (:worst-memory-score m)
-                                            tmp (atom m)]
-                                        (when (<= one-net-bandwidth-score worst-net-bandwidth-score)
-                                          (reset! tmp (assoc-in @tmp [:worst-net-bandwidth-score] one-net-bandwidth-score))
-                                          (reset! tmp (assoc-in @tmp [:worst-net-bandwidth-one] one)))
-                                        (when (<= one-cpu-score worst-cpu-score)
-                                          (reset! tmp (assoc-in @tmp [:worst-cpu-score] one-cpu-score))
-                                          (reset! tmp (assoc-in @tmp [:worst-cpu-one] one)))
-                                        (when (<= one-memory-score worst-memory-score)
-                                          (reset! tmp (assoc-in @tmp [:worst-memory-score] one-memory-score))
-                                          (reset! tmp (assoc-in @tmp [:worst-memory-one] one)))
-                                        @tmp))
-                                    {:worst-net-bandwidth-score 100
-                                     :worst-net-bandwidth-one nil
-                                     :worst-cpu-score 100
-                                     :worst-cpu-one nil
-                                     :worst-memory-score 100
-                                     :worst-memory-one nil}
-                                    one-group))]
-    (map #(let [group (first %)
-                one-group (second %)]
-            {group (worst-supervisors one-group)}) all-supervisors-groupped)))
-
-(defn get-tasks-info
-  []
-  (let [supervisors (reduce (fn [m v]
-                              (assoc m (v :id) v))
-                            {}
-                            (get-all-supervisors))]
-    (map (fn [task]
-           (let [replace-start-time (if (nil? (task :start-time))
-                                      task
-                                      (assoc-in task [:start-time] (mutils/timestamp2datetime (:start-time task))))
-                 replace-supervisor (if (nil? (replace-start-time :supervisor))
-                                      replace-start-time
-                                      (assoc-in replace-start-time [:supervisor] ((supervisors (replace-start-time :supervisor)) :ip)))
-                 replace-last-supervisor (if (nil? (replace-supervisor :last-supervisor))
-                                           replace-supervisor
-                                           (assoc-in replace-supervisor [:last-supervisor] ((supervisors (replace-supervisor :last-supervisor)) :ip)))]
-             replace-last-supervisor))
-         (get-all-tasks))))
 
 (defn prn-tasks-info
   []
-  (let [tasks (get-tasks-info)]
-    (println)
-    (println)
-    (println "longest alive task:")
+  (let [tasks (utils/get-tasks-info)]
+    (log/info "longest alive task:")
     (let [longest-alive-task (reduce (fn [u one]
                                        (if (< (compare (one :start-time) (u :start-time)) 0)
                                          one
                                          u))
                                      tasks)]
-      (println longest-alive-task))
-    (println)
-    (println)
-    (println "newest alive task:")
+      (log/info longest-alive-task))
+    (log/info "newest alive task:")
     (let [newest-alive-task (reduce (fn [u one]
                                       (if (> (compare (one :start-time) (u :start-time)) 0)
                                         one
                                         u))
                                     tasks)]
-      (println newest-alive-task))
-    (println)
-    (println)
-    (println "group_jar_class counts:")
-    (println "tasks info:")
+      (log/info newest-alive-task))
+    (log/info "group_jar_class counts:")
+    (log/info "tasks info:")
     (doseq [task tasks]
       (let [sorted-task (into (sorted-map) task)]
-        (println sorted-task)))))
+        (log/info sorted-task)))))
 
-(defn get-assignments-info
+(defn prn-assignments-info
   []
-  (let [assignments-path "/magpie/assignments"
-        children (vec (zk/get-children assignments-path))
+  (let [
+        children (vec (zk/get-children utils/MAGPIE-TASK-PATH))
         assignments-info (loop [assignments children result (sorted-map)]
                       (if (empty? assignments)
                         result
-                        (let [info (json/read-str (String. (zk/get-data (str assignments-path "/" (last assignments))))
+                        (let [info (json/read-str (String. (zk/get-data (str utils/MAGPIE-TASK-PATH "/" (last assignments))))
                                                   :key-fn keyword)]
                           (if (nil? (info :group))
-                            (do (prn (str "NO GROUP: " info))
+                            (do (log/info (str "NO GROUP: " info))
                                 (recur (pop assignments) result))
                             (if (nil? (info :jar))
-                              (do (prn (str "NO JAR: " info))
+                              (do (log/info (str "NO JAR: " info))
                                   (recur (pop assignments) result))
                               (if (nil? (info :class))
-                                (do (prn (str "NO CLASS: " info))
+                                (do (log/info (str "NO CLASS: " info))
                                     (recur (pop assignments) result))
                                 (let [the-key (keyword (str (info :group) "_" (info :jar) "_" (info :class)))]
                                   (recur (pop assignments)
                                          (assoc result the-key (inc (result the-key 0)))))))))))]
     (doseq [ass assignments-info]
-      (prn (str (key ass) "        " (val ass))))))
+      (log/info (str (key ass) "        " (val ass))))))
 
 (defn prn-supervisors-health
   []
-  (println "supervisors health:")
+  (log/info "supervisors health:")
   (let [supervisors-health-info (supervisors-health)
         format-one (fn [one]
                      (let [group (first (keys one))
@@ -178,22 +85,25 @@
                                              :hostname (:hostname wm-one)
                                              :total-memory (:total-memory wm-one)
                                              :memory-score (:memory-score wm-one)}]
-                       (print "\n")
-                       (println "group:" group)
-                       (println "worst net-bandwidth score:" (if (>= worst-net-bandwidth-score WARNNING-SCORE)
+                       (log/info "group:" group)
+                       (log/info "worst net-bandwidth score:" (if (>= worst-net-bandwidth-score WARNNING-SCORE)
                                                                 worst-net-bandwidth-score
                                                                 (str worst-net-bandwidth-score " WARNNING")))
-                       (println worst-net-bandwidth-new)
-                       (println "worst cpu score:" (if (>= worst-cpu-score WARNNING-SCORE)
+                       (log/info worst-net-bandwidth-new)
+                       (log/info "worst cpu score:" (if (>= worst-cpu-score WARNNING-SCORE)
                                                      worst-cpu-score
                                                      (str worst-cpu-score " WARNNING")))
-                       (println worst-cpu-new)
-                       (println "worst memory score:" (if (>= worst-memory-score WARNNING-SCORE)
+                       (log/info worst-cpu-new)
+                       (log/info "worst memory score:" (if (>= worst-memory-score WARNNING-SCORE)
                                                         worst-memory-score
                                                         (str worst-memory-score " WARNNING")))
-                       (println worst-memory-new)))]
+                       (log/info worst-memory-new)))]
     (doseq [one-group supervisors-health-info]
       (format-one one-group))))
+
+(defn balance-one-group
+  [group]
+  (let []))
 
 (defn -main
   [& args]
@@ -201,9 +111,11 @@
   (let [zk-str "172.17.36.56:2181"
 ;        magpie-client (MagpieClient. (java.util.HashMap.) "")
         magpie-nimbus-path "/magpie/nimbus"]
-    (prn zk-str)
     (zk/new-client zk-str)
+    (prn-supervisors-health)
 ;    (prn-supervisors-health)
 ;    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
-    (utils/new-magpie-client magpie-nimbus-path)
+    (utils/new-magpie-client)
+    (utils/submit-a-task "mag-t-0" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
+    ;(utils/kill-a-task "mag-t-0")
     (zk/close)))

@@ -57,7 +57,7 @@
 (defn prn-supervisors-health
   []
   (log/info "supervisors health:")
-  (let [supervisors-health-info (supervisors-health)
+  (let [supervisors-health-info (utils/supervisors-health)
         format-one (fn [one]
                      (let [group (first (keys one))
                            values (first (vals one))
@@ -103,7 +103,7 @@
 
 (defn balance-one-group
   [group]
-  (let []))
+)
 
 (defn -main
   [& args]

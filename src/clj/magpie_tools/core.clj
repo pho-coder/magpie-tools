@@ -5,7 +5,7 @@
             [clojure.data.json :as json]
             [magpie-tools.utils :as utils]))
 
-(def WARNNING-SCORE 50)
+(def WARNNING-SCORE 40)
 
 (defn prn-tasks-info
   []
@@ -103,19 +103,37 @@
 
 (defn balance-one-group
   [group]
-)
+  (let [supervisors (utils/get-all-supervisors group)
+        bad-supervisors (apply list (filter #(or (< (:net-bandwidth-score %) WARNNING-SCORE)
+                                                 (< (:cpu-score %) WARNNING-SCORE)
+                                                 (< (:memory-score %) WARNNING-SCORE))
+                                            supervisors))
+        balance (fn [supervisor]
+                  (let [supervisor-id (:id supervisor)]
+                    (log/info "begin to balance" supervisor-id)
+                    (let [newest-tasks (reverse (sort-by :assign-time (utils/get-tasks-in-supervisor supervisor-id)))
+                          max-reschedule-size (int (/ (.size newest-tasks) 2))]
+                          (loop [max-size max-reschedule-size
+                                 tasks newest-tasks]
+                            ()))
+                    (log/info "end balance" supervisor-id)))]
+    (if (= (.size bad-supervisors) 0)
+      (log/info "no bad supervisors in" group)
+      (loop [supers bad-supervisors]
+        (if (empty? supers)
+          (log/info "finish balance all!")
+          (do (balance (first supers))
+              (recur (pop supers))))))))
 
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [zk-str "172.17.36.56:2181"
-;        magpie-client (MagpieClient. (java.util.HashMap.) "")
-        magpie-nimbus-path "/magpie/nimbus"]
+  (let [zk-str "172.17.36.56:2181"]
     (zk/new-client zk-str)
-    (prn-supervisors-health)
 ;    (prn-supervisors-health)
 ;    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
-    (utils/new-magpie-client)
-    (utils/submit-a-task "mag-t-0" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
+;    (utils/new-magpie-client)
+;    (utils/submit-a-task "mag-t-11" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
     ;(utils/kill-a-task "mag-t-0")
+    (balance-one-group "dev")
     (zk/close)))

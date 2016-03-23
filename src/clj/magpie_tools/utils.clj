@@ -79,12 +79,15 @@
          tasks)))
 
 (defn get-all-supervisors
-  []
-  (let [supervisors-path SUPERVISORS-PATH
-        supervisors-names (zk/get-children supervisors-path)]
-    (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
-                         :key-fn keyword)
-         supervisors-names)))
+  ([]
+   (let [supervisors-path SUPERVISORS-PATH
+         supervisors-names (zk/get-children supervisors-path)]
+     (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
+                          :key-fn keyword)
+          supervisors-names)))
+  ([group]
+   (filter #(= group (:group %))
+           (get-all-supervisors))))
 
 (defn supervisors-health
   []

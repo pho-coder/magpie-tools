@@ -34,6 +34,7 @@
 
 (defn submit-a-task
   [id jar klass group type]
+  (log/info "start to submit task:" id)
   (let [task-path (str MAGPIE-TASK-PATH "/" id)
         client @*magpie-client*]
     (when (zk/check-exists? task-path)
@@ -45,10 +46,11 @@
     (while (not (zk/check-exists? task-path))
       (log/warn "submitting" id)
       (Thread/sleep 1000))
-    (log/info "submitted" id)))
+    (log/info "end to submit task:" id)))
 
 (defn kill-a-task
   [id]
+  (log/info "start to kill task:" id)
   (let [task-path (str MAGPIE-TASK-PATH "/" id)
         client @*magpie-client*]
     (when (not (zk/check-exists? task-path))
@@ -60,7 +62,7 @@
     (while (zk/check-exists? task-path)
       (log/warn "killing" id)
       (Thread/sleep 1000))
-    (log/info "killed" id)))
+    (log/info "end to kill task:" id)))
 
 ;; zk info funs
 (defn get-all-tasks

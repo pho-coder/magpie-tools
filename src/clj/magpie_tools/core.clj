@@ -110,10 +110,16 @@
         klass (:class task-info)
         group (:group task-info)
         type (:type task-info)]
-    (log/info "will kill task:" task-id)
-    (log/info "if kill error!please kill it and submit it!")
-    (log/info "kill command: magpie-client kill -id" task-id "-d")
-    (log/info "submit command: magpie-client submit -class" klass "-id" id "-jar" jar "-group" group "-type" type "-d"))
+    (try
+      (utils/kill-a-task id)
+      (utils/submit-a-task id jar klass group type)
+      (catch Throwable e
+        (log/error e)
+        (log/error "kill or submit error! please run kill and submit command again!")
+        (log/info "kill command: magpie-client kill -id" id "-d")
+        (log/info "submit command: magpie-client submit -class" klass "-id" id "-jar" jar "-group" group "-type" type "-d")
+        (log/error "balance one task ERROR! please run commands above!")
+        (System/exit 1))))
   (log/info "end balance" task-id))
 
 (defn balance-one-supervisor
@@ -153,7 +159,7 @@
     (zk/new-client zk-str)
 ;    (prn-supervisors-health)
 ;    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
-;    (utils/new-magpie-client)
+    (utils/new-magpie-client)
 ;    (utils/submit-a-task "mag-t-11" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
     ;(utils/kill-a-task "mag-t-0")
     (balance-one-group "dev")

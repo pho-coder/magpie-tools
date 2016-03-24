@@ -144,3 +144,9 @@
                                            (assoc-in replace-supervisor [:last-supervisor] ((supervisors (replace-supervisor :last-supervisor)) :ip)))]
              replace-last-supervisor))
          (get-all-tasks))))
+
+(defn get-one-task
+  [task-id]
+  (let [task-path (str MAGPIE-TASK-PATH "/" task-id)]
+    (json/read-str (String. (zk/get-data task-path))
+                   :key-fn keyword)))

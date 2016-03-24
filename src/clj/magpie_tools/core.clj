@@ -101,29 +101,50 @@
     (doseq [one-group supervisors-health-info]
       (format-one one-group))))
 
+(defn balance-one-task
+  [task-id]
+  (log/info "start to balance" task-id)
+  (let [task-info (utils/get-one-task task-id)
+        id (:id task-info)
+        jar (:jar task-info)
+        klass (:class task-info)
+        group (:group task-info)
+        type (:type task-info)]
+    (log/info "will kill task:" task-id)
+    (log/info "if kill error!please kill it and submit it!")
+    (log/info "kill command: magpie-client kill -id" task-id "-d")
+    (log/info "submit command: magpie-client submit -class" klass "-id" id "-jar" jar "-group" group "-type" type "-d"))
+  (log/info "end balance" task-id))
+
+(defn balance-one-supervisor
+  [supervisor]
+  (let [supervisor-id (:id supervisor)]
+    (log/info "begin to balance" supervisor-id)
+    (let [newest-tasks (reverse (sort-by :assign-time (utils/get-tasks-in-supervisor supervisor-id)))
+          max-reschedule-size (int (/ (.size newest-tasks) 2))]
+      (loop [tasks newest-tasks]
+        (if (< (.size tasks) max-reschedule-size)
+          (log/info "has rescheduled  max num tasks")
+          (let [task (first tasks)]
+            (balance-one-task (:task-id task))
+            (recur (pop tasks))))))
+    (log/info "end balance" supervisor-id)))
+
 (defn balance-one-group
   [group]
   (let [supervisors (utils/get-all-supervisors group)
         bad-supervisors (apply list (filter #(or (< (:net-bandwidth-score %) WARNNING-SCORE)
                                                  (< (:cpu-score %) WARNNING-SCORE)
                                                  (< (:memory-score %) WARNNING-SCORE))
-                                            supervisors))
-        balance (fn [supervisor]
-                  (let [supervisor-id (:id supervisor)]
-                    (log/info "begin to balance" supervisor-id)
-                    (let [newest-tasks (reverse (sort-by :assign-time (utils/get-tasks-in-supervisor supervisor-id)))
-                          max-reschedule-size (int (/ (.size newest-tasks) 2))]
-                          (loop [max-size max-reschedule-size
-                                 tasks newest-tasks]
-                            ()))
-                    (log/info "end balance" supervisor-id)))]
+                                            supervisors))]
     (if (= (.size bad-supervisors) 0)
       (log/info "no bad supervisors in" group)
-      (loop [supers bad-supervisors]
-        (if (empty? supers)
-          (log/info "finish balance all!")
-          (do (balance (first supers))
-              (recur (pop supers))))))))
+      (do (log/info "start to balance" group)
+          (loop [supers bad-supervisors]
+            (if (empty? supers)
+              (log/info "finish balance" group)
+              (do (balance-one-supervisor (first supers))
+                  (recur (pop supers)))))))))
 
 (defn -main
   [& args]

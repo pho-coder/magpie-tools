@@ -172,6 +172,8 @@
   (prn "Hi, magpie tools!")
   (let [zk-str (first args)                       ;"172.17.36.56:2181"
         group (second args)]
+    (log/info "zk str:" zk-str)
+    (log/info "group:" group)
     (zk/new-client zk-str)
     (utils/new-magpie-client)
     (balance-one-group group)

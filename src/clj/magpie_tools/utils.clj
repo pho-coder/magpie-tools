@@ -90,7 +90,7 @@
 
 (defn the-supervisor-is-ok?
   [supervisor-id]
-  (let [ok-score 40
+  (let [ok-score 30
         supervisor (get-the-supervisor supervisor-id)]
     (log/info supervisor)
     (and (>= (:net-bandwidth-score supervisor) ok-score)

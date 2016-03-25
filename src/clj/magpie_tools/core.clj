@@ -5,7 +5,7 @@
             [clojure.data.json :as json]
             [magpie-tools.utils :as utils]))
 
-(def WARNNING-SCORE 40)
+(def WARNNING-SCORE 30)
 
 (defn prn-tasks-info
   []

@@ -80,11 +80,24 @@
                                 :key-fn keyword) :task-id %)
          tasks)))
 
+(defn get-the-supervisor
+  [supervisor-id]
+  (json/read-str (String. (zk/get-data (str SUPERVISORS-PATH "/" supervisor-id)))
+                 :key-fn keyword))
+
+(defn the-supervisor-is-ok?
+  [supervisor-id]
+  (let [ok-score 40
+        supervisor (get-the-supervisor supervisor-id)]
+    (log/info supervisor)
+    (and (>= (:net-bandwidth-score supervisor) ok-score)
+         (>= (:cpu-score supervisor) ok-score)
+         (>= (:memory-score supervisor) ok-score))))
+
 (defn get-all-supervisors
   ([]
-   (let [supervisors-path SUPERVISORS-PATH
-         supervisors-names (zk/get-children supervisors-path)]
-     (map #(json/read-str (String. (zk/get-data (str supervisors-path "/" %)))
+   (let [supervisors-names (zk/get-children SUPERVISORS-PATH)]
+     (map #(json/read-str (String. (zk/get-data (str SUPERVISORS-PATH "/" %)))
                           :key-fn keyword)
           supervisors-names)))
   ([group]

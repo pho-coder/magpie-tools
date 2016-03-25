@@ -128,13 +128,17 @@
     (log/info "begin to balance" supervisor-id)
     (let [newest-tasks (reverse (sort-by :assign-time (utils/get-tasks-in-supervisor supervisor-id)))
           max-reschedule-size (int (/ (.size newest-tasks) 2))]
-      (loop [tasks newest-tasks]
-        (if (< (.size tasks) max-reschedule-size)
-          (log/info "has rescheduled  max num tasks")
-          (let [task (first tasks)]
-            (balance-one-task (:task-id task))
-            (recur (pop tasks))))))
-    (log/info "end balance" supervisor-id)))
+      (loop [tasks newest-tasks
+             is-ok? (utils/the-supervisor-is-ok? supervisor-id)]
+        (if is-ok?
+          (log/info supervisor-id "is ok now!")
+          (if (< (.size tasks) max-reschedule-size)
+            (log/info "has rescheduled  max num tasks")
+            (let [task (first tasks)]
+              (balance-one-task (:task-id task))
+              (recur (pop tasks)
+                     (utils/the-supervisor-is-ok? supervisor-id))))))
+      (log/info "end balance" supervisor-id))))
 
 (defn balance-one-group
   [group]
@@ -163,4 +167,5 @@
 ;    (utils/submit-a-task "mag-t-11" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
     ;(utils/kill-a-task "mag-t-0")
     (balance-one-group "dev")
+ ;   (utils/the-supervisor-is-ok? "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d")
     (zk/close)))

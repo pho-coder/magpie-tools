@@ -150,22 +150,29 @@
     (if (= (.size bad-supervisors) 0)
       (log/info "no bad supervisors in" group)
       (do (log/info "start to balance" group)
-          (loop [supers bad-supervisors]
-            (if (empty? supers)
-              (log/info "finish balance" group)
-              (do (balance-one-supervisor (first supers))
-                  (recur (pop supers)))))))))
+          (let [tasks-before (utils/get-all-tasks group)
+                size-before (.size tasks-before)]
+            (log/info tasks-before)
+            (log/info "there are" size-before "tasks in group" group)
+            (loop [supers bad-supervisors]
+              (if (empty? supers)
+                (log/info "finish balance" group)
+                (do (balance-one-supervisor (first supers))
+                    (recur (pop supers)))))
+            (let [tasks-after (utils/get-all-tasks group)
+                  size-after (.size tasks-after)]
+              (if (= size-before size-after)
+                (log/info "after balance, tasks num is the same as before")
+                (do (log/error "after balance, tasks num is not the same as before, now only" size-after)
+                    (log/info tasks-after)
+                    (System/exit 1)))))))))
 
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [zk-str "172.17.36.56:2181"]
+  (let [zk-str (first args)                       ;"172.17.36.56:2181"
+        group (second args)]
     (zk/new-client zk-str)
-;    (prn-supervisors-health)
-;    (prn (get-tasks-in-supervisor "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d"))
     (utils/new-magpie-client)
-;    (utils/submit-a-task "mag-t-11" "magpie-eggs-test-high-cpu-1.0-SNAPSHOT-standalone.jar" "com.jd.bdp.magpie.magpie_eggs_test_high_cpu.MainExecutor" "dev" "cpu")
-    ;(utils/kill-a-task "mag-t-0")
-    (balance-one-group "dev")
- ;   (utils/the-supervisor-is-ok? "BJYZ-magpie-Client-3658.hadoop.jd.local-8d3cac52-9ea6-4fb5-9b8c-ef660683ae5d")
+    (balance-one-group group)
     (zk/close)))

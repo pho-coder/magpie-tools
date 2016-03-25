@@ -66,11 +66,14 @@
 
 ;; zk info funs
 (defn get-all-tasks
-  []
-  (let [children-names (zk/get-children MAGPIE-TASK-PATH)]
-    (map #(json/read-str (String. (zk/get-data (str MAGPIE-TASK-PATH "/" %)))
-                         :key-fn keyword)
-         children-names)))
+  ([]
+   (let [children-names (zk/get-children MAGPIE-TASK-PATH)]
+     (map #(json/read-str (String. (zk/get-data (str MAGPIE-TASK-PATH "/" %)))
+                          :key-fn keyword)
+          children-names)))
+  ([group]
+   (filter #(= (:group %) group)
+           (get-all-tasks))))
 
 (defn get-tasks-in-supervisor
   [supervisor]

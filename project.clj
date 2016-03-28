@@ -6,6 +6,7 @@
   :repositories [["jd-libs-snapshots" "http://artifactory.360buy-develop.com/libs-snapshots"]
                  ["clojars" "http://clojars.org/repo"]]
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/tools.cli "0.3.3"]
                  [org.apache.thrift/libthrift "0.9.1"]
                  [clj-zookeeper "0.2.0-SNAPSHOT"]
                  [org.clojure/data.json "0.2.6"]

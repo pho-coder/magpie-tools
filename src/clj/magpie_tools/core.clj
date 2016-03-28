@@ -3,9 +3,10 @@
   (:require [clj-zookeeper.zookeeper :as zk]
             [clojure.tools.logging :as log]
             [clojure.data.json :as json]
-            [magpie-tools.utils :as utils]))
+            [magpie-tools.utils :as utils]
+            [clojure.tools.cli :refer [parse-opts]]))
 
-(def WARNNING-SCORE 30)
+(def WARNNING-SCORE 20)
 
 (defn prn-tasks-info
   []
@@ -110,6 +111,9 @@
         klass (:class task-info)
         group (:group task-info)
         type (:type task-info)]
+    (log/info "IF kill or submit error! please run kill and submit command again!")
+    (log/info "kill command: magpie-client kill -id" id "-d")
+    (log/info "submit command: magpie-client submit -class" klass "-id" id "-jar" jar "-group" group "-type" type "-d")
     (try
       (utils/kill-a-task id)
       (utils/submit-a-task id jar klass group type)
@@ -167,14 +171,26 @@
                     (log/info tasks-after)
                     (System/exit 1)))))))))
 
+(def cli-options
+  ;; An option with a required argument
+  [["-z" "--zk zk-str" "zk address"
+    :parse-fn #(String. %)]
+   ["-b" "--balance"]
+   ["-g" "--group group" "group name"]
+   ;; A boolean option defaulting to nil
+   ["-e" "--health" "supervisors health"]
+   ["-h" "--help"]])
+
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [zk-str (first args)                       ;"172.17.36.56:2181"
-        group (second args)]
-    (log/info "zk str:" zk-str)
-    (log/info "group:" group)
-    (zk/new-client zk-str)
-    (utils/new-magpie-client)
-    (balance-one-group group)
-    (zk/close)))
+  (let [opts (:options (parse-opts args cli-options))]
+    (log/info opts)
+    (if (:help opts)
+      (log/info "\nuages: java -jar magpie-tools-0.3.0-SNAPSHOT-standalone.jar -z(--zk) 127.0.0.1:2181,127.0.0.2:2181\n       supervisors health:\n       -e(--health)\n       balance one group:\n       -b(--balance) -g(--group) dev")
+      (if (:health opts)
+        (do (zk/new-client (:zk opts)) 
+            (prn-supervisors-health)
+            (zk/close))))
+    (System/exit 0)
+    (utils/new-magpie-client)))

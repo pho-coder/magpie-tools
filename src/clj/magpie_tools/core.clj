@@ -13,14 +13,14 @@
   (let [tasks (utils/get-tasks-info)]
     (log/info "longest alive task:")
     (let [longest-alive-task (reduce (fn [u one]
-                                       (if (< (compare (one :start-time) (u :start-time)) 0)
+                                       (if (neg? (compare (one :start-time) (u :start-time)))
                                          one
                                          u))
                                      tasks)]
       (log/info longest-alive-task))
     (log/info "newest alive task:")
     (let [newest-alive-task (reduce (fn [u one]
-                                      (if (> (compare (one :start-time) (u :start-time)) 0)
+                                      (if (pos? (compare (one :start-time) (u :start-time)))
                                         one
                                         u))
                                     tasks)]
@@ -151,7 +151,7 @@
                                                  (< (:cpu-score %) WARNNING-SCORE)
                                                  (< (:memory-score %) WARNNING-SCORE))
                                             supervisors))]
-    (if (= (.size bad-supervisors) 0)
+    (if (zero? (.size bad-supervisors))
       (log/info "no bad supervisors in" group)
       (do (log/info "start to balance" group)
           (let [tasks-before (utils/get-all-tasks group)
@@ -175,7 +175,7 @@
   ;; An option with a required argument
   [["-z" "--zk zk-str" "zk address"
     :parse-fn #(String. %)]
-   ["-b" "--balance"]
+   ["-b" "--balance" "balance one group"]
    ["-g" "--group group" "group name"]
    ;; A boolean option defaulting to nil
    ["-e" "--health" "supervisors health"]
@@ -191,6 +191,10 @@
       (if (:health opts)
         (do (zk/new-client (:zk opts)) 
             (prn-supervisors-health)
-            (zk/close))))
-    (System/exit 0)
-    (utils/new-magpie-client)))
+            (zk/close))
+        (if (:balance opts)
+          (if-not (:group opts)
+            (do (log/error "balance need group name!")
+                (System/exit 1))
+            (do (utils/new-magpie-client)
+                (balance-one-group (:group opts)))))))))

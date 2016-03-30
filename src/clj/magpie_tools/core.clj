@@ -133,7 +133,7 @@
     (let [newest-tasks (reverse (sort-by :assign-time (utils/get-tasks-in-supervisor supervisor-id)))
           max-reschedule-size (int (/ (.size newest-tasks) 2))]
       (loop [tasks newest-tasks
-             is-ok? (utils/the-supervisor-is-ok? supervisor-id)]
+             is-ok? (utils/the-supervisor-is-ok? supervisor-id WARNNING-SCORE)]
         (if is-ok?
           (log/info supervisor-id "is ok now!")
           (if (< (.size tasks) max-reschedule-size)
@@ -141,7 +141,7 @@
             (let [task (first tasks)]
               (balance-one-task (:task-id task))
               (recur (pop tasks)
-                     (utils/the-supervisor-is-ok? supervisor-id))))))
+                     (utils/the-supervisor-is-ok? supervisor-id WARNNING-SCORE))))))
       (log/info "end balance" supervisor-id))))
 
 (defn balance-one-group

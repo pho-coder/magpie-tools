@@ -89,13 +89,14 @@
                  :key-fn keyword))
 
 (defn the-supervisor-is-ok?
-  [supervisor-id]
-  (let [ok-score 20
-        supervisor (get-the-supervisor supervisor-id)]
-    (log/info supervisor)
-    (and (>= (:net-bandwidth-score supervisor) ok-score)
-         (>= (:cpu-score supervisor) ok-score)
-         (>= (:memory-score supervisor) ok-score))))
+  ([supervisor-id ok-score]
+   (let [supervisor (get-the-supervisor supervisor-id)]
+     (log/info supervisor)
+     (and (>= (:net-bandwidth-score supervisor) ok-score)
+          (>= (:cpu-score supervisor) ok-score)
+          (>= (:memory-score supervisor) ok-score))))
+  ([supervisor-id]
+   (the-supervisor-is-ok? supervisor-id 20)))
 
 (defn get-all-supervisors
   ([]

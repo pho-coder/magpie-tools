@@ -146,6 +146,7 @@
 
 (defn balance-one-group
   [group]
+  (log/info "WARNNING-SCORE:" WARNNING-SCORE)
   (let [supervisors (utils/get-all-supervisors group)
         bad-supervisors (apply list (filter #(or (< (:net-bandwidth-score %) WARNNING-SCORE)
                                                  (< (:cpu-score %) WARNNING-SCORE)
@@ -177,6 +178,9 @@
     :parse-fn #(String. %)]
    ["-b" "--balance" "balance one group"]
    ["-g" "--group group" "group name"]
+   ["-s" "--score SCORE" "warnning score"
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 5 % 50) "Must be a number between 5 and 50"]]
    ;; A boolean option defaulting to nil
    ["-e" "--health" "supervisors health"]
    ["-h" "--help"]])
@@ -184,17 +188,25 @@
 (defn -main
   [& args]
   (prn "Hi, magpie tools!")
-  (let [opts (:options (parse-opts args cli-options))]
+  (let [parsed-opts (parse-opts args cli-options)
+        opts (:options parsed-opts)]
+    (when-not (nil? (:errors parsed-opts))
+      (log/error (:errors parsed-opts))
+      (System/exit 1))
     (log/info opts)
     (if (:help opts)
-      (log/info "\nuages: java -jar magpie-tools-0.3.0-SNAPSHOT-standalone.jar -z(--zk) 127.0.0.1:2181,127.0.0.2:2181\n       supervisors health:\n       -e(--health)\n       balance one group:\n       -b(--balance) -g(--group) dev")
+      (log/info "\nuages: java -jar magpie-tools-0.3.0-SNAPSHOT-standalone.jar -z(--zk) 127.0.0.1:2181,127.0.0.2:2181\n       supervisors health:\n       -e(--health)\n       balance one group:\n       -b(--balance) -g(--group) dev -s(--score) 20(dufault)")
       (if (:health opts)
-        (do (zk/new-client (:zk opts)) 
+        (do (zk/new-client (:zk opts))
             (prn-supervisors-health)
             (zk/close))
         (if (:balance opts)
           (if-not (:group opts)
             (do (log/error "balance need group name!")
                 (System/exit 1))
-            (do (utils/new-magpie-client)
-                (balance-one-group (:group opts)))))))))
+            (do (if (:score opts)
+                  (def WARNNING-SCORE (:score opts)))
+                (zk/new-client (:zk opts))
+                (utils/new-magpie-client)
+                (balance-one-group (:group opts))
+                (zk/close))))))))
